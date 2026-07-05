@@ -4,7 +4,7 @@ async function request(path, options = {}) {
   const response = await fetch(path, options)
   const payload = await response.json().catch(() => ({}))
   if (!response.ok) {
-    throw new Error(payload.detail || `Request failed: ${response.status}`)
+    throw new Error(payload.detail || `请求失败，状态码：${response.status}`)
   }
   return payload
 }
@@ -43,9 +43,37 @@ export const api = {
     }),
   getOutputs: () => request('/api/outputs'),
   getOutputContent: (path) => request(`/api/outputs/content?path=${encodeURIComponent(path)}`),
+  getSettings: () => request('/api/settings'),
+  saveSettings: (crewProjectPath) =>
+    request('/api/settings', {
+      method: 'PUT',
+      headers: jsonHeaders,
+      body: JSON.stringify({ crew_project_path: crewProjectPath })
+    }),
+  getHealth: () => request('/api/health'),
   startRun: () => request('/api/runs', { method: 'POST' }),
   getRuns: () => request('/api/runs'),
   getRun: (id) => request(`/api/runs/${id}`)
+}
+
+export function simplifyLogText(logText) {
+  const keywords = ['task', 'agent', 'success', 'failed', 'error', 'output', 'finished', 'completed', 'writing']
+  const lines = String(logText || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => {
+      const lower = line.toLowerCase()
+      return line && keywords.some((keyword) => lower.includes(keyword))
+    })
+    .map((line) => {
+      const lower = line.toLowerCase()
+      if (lower.includes('error') || lower.includes('failed') || lower.includes('exception')) return `异常提醒：${line}`
+      if (lower.includes('success') || lower.includes('finished') || lower.includes('completed')) return `运行成功：${line}`
+      if (lower.includes('output') || lower.includes('writing')) return `输出产物：${line}`
+      if (lower.includes('task') || lower.includes('agent')) return `任务进度：${line}`
+      return `运行信息：${line}`
+    })
+  return lines.length ? lines.slice(-80).join('\n') : '暂无关键进度。需要排查时请切换到原始日志。'
 }
 
 export function connectRunLogs(runId, onMessage) {

@@ -5,6 +5,13 @@ defineProps({
     default: 'unknown'
   }
 })
+
+const labels = {
+  running: '运行中',
+  success: '成功',
+  failed: '失败',
+  unknown: '未知'
+}
 </script>
 
 <template>
@@ -17,6 +24,6 @@ defineProps({
       'bg-neutral-200 text-neutral-700': !['running', 'success', 'failed'].includes(status)
     }"
   >
-    {{ status || 'unknown' }}
+    {{ labels[status] || labels.unknown }}
   </span>
 </template>

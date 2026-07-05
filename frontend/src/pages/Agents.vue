@@ -12,9 +12,9 @@ const notice = ref('')
 const selectedAgent = computed(() => agents.value.find((agent) => agent.filename === selectedFilename.value))
 
 const emptyAgent = {
-  role: '新 Agent',
-  goal: '描述这个 Agent 要完成的目标。',
-  backstory: '描述这个 Agent 的背景和工作方式。',
+  role: '新智能体',
+  goal: '描述这个智能体要完成的目标。',
+  backstory: '描述这个智能体的背景和工作方式。',
   llm: 'openai/deepseek-chat',
   tools: ['FileReadTool', 'FileWriterTool'],
   settings: { verbose: false, allow_delegation: false }
@@ -47,7 +47,7 @@ async function save() {
   try {
     const parsed = JSON.parse(editorText.value)
     await api.saveAgent(selectedFilename.value, parsed)
-    notice.value = 'Agent 已保存，旧文件已自动备份。'
+    notice.value = '智能体已保存，旧文件已自动备份。'
     await load()
     await selectAgent(selectedFilename.value)
   } catch (err) {
@@ -61,7 +61,7 @@ async function remove() {
   if (!selectedFilename.value) return
   try {
     await api.deleteAgent(selectedFilename.value)
-    notice.value = 'Agent 已删除，删除前已自动备份。'
+    notice.value = '智能体已删除，删除前已自动备份。'
     selectedFilename.value = ''
     editorText.value = ''
     await load()
@@ -77,8 +77,8 @@ onMounted(load)
   <section>
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold">Agents</h1>
-        <p class="text-sm text-neutral-500">查看、创建、编辑和删除 agent JSONC 文件</p>
+        <h1 class="text-2xl font-semibold">智能体</h1>
+        <p class="text-sm text-neutral-500">查看、创建、编辑和删除智能体配置文件</p>
       </div>
       <button class="rounded-md bg-ink px-3 py-2 text-sm text-white" type="button" @click="load">刷新</button>
     </div>
@@ -87,7 +87,7 @@ onMounted(load)
 
     <div class="grid grid-cols-[420px_1fr] gap-4">
       <div class="rounded-md border border-line bg-white">
-        <div class="border-b border-line p-3 text-sm font-semibold">Agent 列表</div>
+        <div class="border-b border-line p-3 text-sm font-semibold">智能体列表</div>
         <button
           v-for="agent in agents"
           :key="agent.filename"
@@ -102,7 +102,7 @@ onMounted(load)
         </button>
         <div class="space-y-2 p-3">
           <input v-model="newFilename" class="w-full rounded-md border border-line p-2 text-sm" />
-          <button class="w-full rounded-md border border-line px-3 py-2 text-sm" type="button" @click="createDraft">新建 Agent 草稿</button>
+          <button class="w-full rounded-md border border-line px-3 py-2 text-sm" type="button" @click="createDraft">新建智能体草稿</button>
         </div>
       </div>
 

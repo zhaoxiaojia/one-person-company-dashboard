@@ -9,16 +9,18 @@ import Runs from './pages/Runs.vue'
 import Outputs from './pages/Outputs.vue'
 import Models from './pages/Models.vue'
 import Flow from './pages/Flow.vue'
+import SettingsPage from './pages/Settings.vue'
 
 const pages = [
-  { id: 'dashboard', label: 'Dashboard', icon: Gauge, component: Dashboard },
-  { id: 'agents', label: 'Agents', icon: Bot, component: Agents },
-  { id: 'tasks', label: 'Tasks', icon: ClipboardList, component: Tasks },
-  { id: 'config', label: 'Crew Config', icon: Settings, component: CrewConfig },
-  { id: 'runs', label: 'Runs', icon: History, component: Runs },
-  { id: 'outputs', label: 'Outputs', icon: FileText, component: Outputs },
-  { id: 'models', label: 'Models', icon: SlidersHorizontal, component: Models },
-  { id: 'flow', label: 'Flow', icon: GitBranch, component: Flow }
+  { id: 'dashboard', label: '控制台', icon: Gauge, component: Dashboard },
+  { id: 'agents', label: '智能体', icon: Bot, component: Agents },
+  { id: 'tasks', label: '任务', icon: ClipboardList, component: Tasks },
+  { id: 'config', label: '运行输入', icon: Settings, component: CrewConfig },
+  { id: 'runs', label: '运行记录', icon: History, component: Runs },
+  { id: 'outputs', label: '输出文件', icon: FileText, component: Outputs },
+  { id: 'models', label: '模型设置', icon: SlidersHorizontal, component: Models },
+  { id: 'flow', label: '流程图', icon: GitBranch, component: Flow },
+  { id: 'settings', label: '项目设置', icon: Settings, component: SettingsPage }
 ]
 
 const activePage = ref('dashboard')
@@ -29,8 +31,8 @@ const activeComponent = computed(() => pages.find((page) => page.id === activePa
   <div class="min-h-screen">
     <aside class="fixed inset-y-0 left-0 w-64 border-r border-line bg-[#fbfaf6] px-4 py-5">
       <div class="mb-8">
-        <div class="text-lg font-semibold leading-tight">One Person Company</div>
-        <div class="text-sm text-neutral-500">CrewAI Dashboard</div>
+        <div class="text-lg font-semibold leading-tight">一人公司控制台</div>
+        <div class="text-sm text-neutral-500">本地 CrewAI 生产线</div>
       </div>
       <nav class="space-y-1">
         <button

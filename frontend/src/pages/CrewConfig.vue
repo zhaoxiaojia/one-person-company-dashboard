@@ -36,7 +36,7 @@ onMounted(load)
 <template>
   <section>
     <div class="mb-6">
-      <h1 class="text-2xl font-semibold">Crew Config</h1>
+      <h1 class="text-2xl font-semibold">运行输入</h1>
       <p class="text-sm text-neutral-500">编辑本次运行输入</p>
     </div>
     <div v-if="error" class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
@@ -44,19 +44,19 @@ onMounted(load)
     <div v-if="config" class="rounded-md border border-line bg-white p-4">
       <dl class="mb-5 grid grid-cols-4 gap-4 text-sm">
         <div>
-          <dt class="text-neutral-500">Name</dt>
+          <dt class="text-neutral-500">名称</dt>
           <dd class="mt-1 font-medium">{{ config.name }}</dd>
         </div>
         <div>
-          <dt class="text-neutral-500">Process</dt>
+          <dt class="text-neutral-500">流程模式</dt>
           <dd class="mt-1 font-medium">{{ config.process }}</dd>
         </div>
         <div>
-          <dt class="text-neutral-500">Verbose</dt>
+          <dt class="text-neutral-500">详细日志</dt>
           <dd class="mt-1 font-medium">{{ config.verbose }}</dd>
         </div>
         <div>
-          <dt class="text-neutral-500">Memory</dt>
+          <dt class="text-neutral-500">记忆</dt>
           <dd class="mt-1 font-medium">{{ config.memory }}</dd>
         </div>
       </dl>

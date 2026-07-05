@@ -36,7 +36,7 @@ onMounted(load)
   <section>
     <div class="mb-6 flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold">Outputs</h1>
+        <h1 class="text-2xl font-semibold">输出文件</h1>
         <p class="text-sm text-neutral-500">查看项目根目录和 outputs/ 下的 md、txt、json 产物</p>
       </div>
       <button class="rounded-md bg-ink px-3 py-2 text-sm text-white" type="button" @click="load">刷新</button>
@@ -54,7 +54,7 @@ onMounted(load)
           @click="selectOutput(output)"
         >
           <div class="font-medium">{{ output.name }}</div>
-          <div class="mt-1 text-xs text-neutral-500">{{ output.path }} · {{ output.kind }} · {{ output.size }} bytes</div>
+          <div class="mt-1 text-xs text-neutral-500">{{ output.path }} · {{ output.kind }} · {{ output.size }} 字节</div>
         </button>
       </div>
       <div class="rounded-md border border-line bg-white">

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from db.database import connect, init_db
+from services.health_service import HealthService
 from services.log_service import mask_sensitive_text
 
 
@@ -14,9 +15,10 @@ TOKEN_RE = re.compile(r"(?i)(input|prompt)\D+(\d+).*?(output|completion)\D+(\d+)
 
 
 class RunnerService:
-    def __init__(self, crew_project_path: Path, db_path: Path):
+    def __init__(self, crew_project_path: Path, db_path: Path, health_service: HealthService | None = None):
         self.crew_project_path = Path(crew_project_path)
         self.db_path = Path(db_path)
+        self.health_service = health_service or HealthService(self.crew_project_path)
         self.subscribers: dict[int, set[asyncio.Queue[str]]] = {}
         init_db(self.db_path)
 
@@ -27,7 +29,10 @@ class RunnerService:
 
     def create_run(self) -> int:
         if self._has_active_run():
-            raise RuntimeError("a crew run is already running")
+            raise RuntimeError("已有生产线正在运行，请等待完成后再启动。")
+        health = self.health_service.check()
+        if not health["ok"]:
+            raise RuntimeError(health["message"])
         started_at = datetime.now(timezone.utc).isoformat()
         with connect(self.db_path) as connection:
             cursor = connection.execute(
@@ -120,10 +125,38 @@ class RunnerService:
             connection.commit()
 
     def _parse_tokens(self, log_text: str) -> tuple[int | None, int | None]:
+        json_match = re.search(r'"prompt_tokens"\s*:\s*(\d+).*?"completion_tokens"\s*:\s*(\d+)', log_text, re.DOTALL)
+        if json_match:
+            return int(json_match.group(1)), int(json_match.group(2))
         match = TOKEN_RE.search(log_text)
         if not match:
             return None, None
         return int(match.group(2)), int(match.group(4))
+
+    def _simplify_log(self, log_text: str) -> str:
+        lines: list[str] = []
+        keywords = ("task", "agent", "success", "failed", "error", "output", "finished", "completed", "writing")
+        for raw_line in mask_sensitive_text(log_text).splitlines():
+            line = raw_line.strip()
+            if not line:
+                continue
+            lower = line.lower()
+            if not any(keyword in lower for keyword in keywords):
+                continue
+            if "error" in lower or "failed" in lower or "exception" in lower:
+                prefix = "异常提醒"
+            elif "success" in lower or "finished" in lower or "completed" in lower:
+                prefix = "运行成功"
+            elif "output" in lower or "writing" in lower:
+                prefix = "输出产物"
+            elif "task" in lower or "agent" in lower:
+                prefix = "任务进度"
+            else:
+                prefix = "运行信息"
+            lines.append(f"{prefix}：{line}")
+        if not lines:
+            return "暂无关键进度。需要排查时请切换到原始日志。"
+        return "\n".join(lines[-80:])
 
     def _scan_output_paths(self, started: datetime) -> list[str]:
         outputs: list[str] = []
@@ -137,6 +170,7 @@ class RunnerService:
     def _row_to_dict(self, row: sqlite3.Row, include_log: bool) -> dict[str, Any]:
         data = dict(row)
         data["output_paths"] = json.loads(data.pop("output_paths_json") or "[]")
+        data["simple_log_text"] = self._simplify_log(data.get("log_text") or "")
         if not include_log:
             data.pop("log_text", None)
         return data

@@ -32,8 +32,8 @@ onMounted(load)
 <template>
   <section>
     <div class="mb-6">
-      <h1 class="text-2xl font-semibold">Models</h1>
-      <p class="text-sm text-neutral-500">查看脱敏环境变量，并批量切换 Agent 模型</p>
+      <h1 class="text-2xl font-semibold">模型设置</h1>
+      <p class="text-sm text-neutral-500">查看脱敏环境变量，并批量切换智能体模型</p>
     </div>
     <div v-if="error" class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
     <div v-if="notice" class="mb-4 rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-700">{{ notice }}</div>
@@ -48,9 +48,9 @@ onMounted(load)
         </dl>
       </div>
       <div class="rounded-md border border-line bg-white p-4">
-        <h2 class="mb-3 font-semibold">批量切换 Agent LLM</h2>
+        <h2 class="mb-3 font-semibold">批量切换智能体模型</h2>
         <input v-model="llm" class="mb-3 w-full rounded-md border border-line p-2 text-sm" />
-        <button class="rounded-md bg-accent px-4 py-2 text-sm text-white" type="button" @click="saveModels">应用到全部 Agent</button>
+        <button class="rounded-md bg-accent px-4 py-2 text-sm text-white" type="button" @click="saveModels">应用到全部智能体</button>
         <div class="mt-5 space-y-2 text-sm">
           <div v-for="agent in config?.agent_llms" :key="agent.filename" class="flex justify-between gap-4 border-b border-line pb-2">
             <span class="font-medium">{{ agent.filename }}</span>

@@ -214,5 +214,5 @@ def test_runner_rejects_second_active_run(tmp_path: Path):
     connection.close()
     runner = RunnerService(tmp_path, db_path)
 
-    with pytest.raises(RuntimeError, match="already running"):
+    with pytest.raises(RuntimeError, match="已有生产线正在运行"):
         runner.create_run()
