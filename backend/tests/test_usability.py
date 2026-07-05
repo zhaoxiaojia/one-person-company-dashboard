@@ -93,15 +93,21 @@ def test_simplifies_english_log_into_chinese_summary(tmp_path: Path):
         [
             "Starting CrewAI run",
             "Task plan_story_task assigned to agent project_manager",
+            "Agent novel_writer is working",
             "Writing output file short_anime_script.md",
             "Completed successfully",
+            "Error: sample failure",
             "OPENAI_API_KEY=sk-secret-value",
         ]
     )
 
     simple = runner._simplify_log(raw_log)
 
-    assert "任务进度：Task plan_story_task assigned to agent project_manager" in simple
-    assert "输出产物：Writing output file short_anime_script.md" in simple
-    assert "运行成功：Completed successfully" in simple
+    assert "正在启动生产线" in simple
+    assert "正在执行任务：plan_story_task" in simple
+    assert "当前智能体：project_manager" in simple
+    assert "当前智能体：novel_writer" in simple
+    assert "输出文件：short_anime_script.md" in simple
+    assert "运行成功" in simple
+    assert "运行失败：Error: sample failure" in simple
     assert "sk-secret-value" not in simple

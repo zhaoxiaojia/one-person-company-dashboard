@@ -5,8 +5,10 @@ import { api } from '../api/client'
 import StatusPill from '../components/StatusPill.vue'
 
 const summary = ref(null)
+const health = ref(null)
 const error = ref('')
 const running = ref(false)
+const emit = defineEmits(['run-started'])
 
 const latestRun = computed(() => summary.value?.latest_run || null)
 const succeeded = computed(() => latestRun.value?.status === 'success')
@@ -19,7 +21,9 @@ function formatDuration(ms) {
 async function load() {
   error.value = ''
   try {
-    summary.value = await api.getSummary()
+    const [summaryPayload, healthPayload] = await Promise.all([api.getSummary(), api.getHealth()])
+    summary.value = summaryPayload
+    health.value = healthPayload
     running.value = latestRun.value?.status === 'running'
   } catch (err) {
     error.value = err.message
@@ -30,8 +34,8 @@ async function startProductionLine() {
   error.value = ''
   running.value = true
   try {
-    await api.startRun()
-    await load()
+    const run = await api.startRun()
+    emit('run-started', run.id)
   } catch (err) {
     running.value = false
     error.value = err.message
@@ -61,18 +65,21 @@ onMounted(load)
         </div>
         <button
           class="inline-flex items-center gap-2 rounded-md px-6 py-3 text-base font-semibold text-white shadow-sm"
-          :class="running ? 'bg-neutral-400' : 'bg-accent hover:brightness-95'"
+          :class="running || health?.ok === false ? 'bg-neutral-400' : 'bg-accent hover:brightness-95'"
           type="button"
-          :disabled="running"
+          :disabled="running || health?.ok === false"
           @click="startProductionLine"
         >
           <Play class="h-5 w-5" />
           {{ running ? '生产线运行中' : '运行生产线' }}
         </button>
       </div>
+      <div v-if="health?.ok === false" class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        运行环境异常：{{ health.message }}
+      </div>
     </div>
 
-    <div v-if="summary" class="grid grid-cols-4 gap-4">
+    <div v-if="summary" class="grid grid-cols-5 gap-4">
       <div class="rounded-md border border-line bg-white p-4">
         <div class="text-sm text-neutral-500">智能体数量</div>
         <div class="mt-2 text-3xl font-semibold">{{ summary.agent_count }}</div>
@@ -84,6 +91,12 @@ onMounted(load)
       <div class="rounded-md border border-line bg-white p-4">
         <div class="text-sm text-neutral-500">最近状态</div>
         <div class="mt-3"><StatusPill :status="latestRun?.status || 'unknown'" /></div>
+      </div>
+      <div class="rounded-md border border-line bg-white p-4">
+        <div class="text-sm text-neutral-500">运行环境</div>
+        <div class="mt-2 text-2xl font-semibold" :class="health?.ok ? 'text-green-700' : 'text-red-700'">
+          {{ health ? (health.ok ? '正常' : '异常') : '-' }}
+        </div>
       </div>
       <div class="rounded-md border border-line bg-white p-4">
         <div class="text-sm text-neutral-500">是否成功</div>

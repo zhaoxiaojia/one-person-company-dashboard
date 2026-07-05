@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { api, connectRunLogs, simplifyLogText } from '../api/client'
 import StatusPill from '../components/StatusPill.vue'
 
@@ -10,6 +10,12 @@ const error = ref('')
 const running = ref(false)
 const logMode = ref('simple')
 let socket = null
+const props = defineProps({
+  initialRunId: {
+    type: Number,
+    default: null
+  }
+})
 
 const displayLog = computed(() => {
   if (liveLog.value) {
@@ -36,6 +42,25 @@ async function selectRun(id) {
   liveLog.value = ''
 }
 
+async function followRun(id) {
+  if (!id) return
+  error.value = ''
+  liveLog.value = ''
+  running.value = true
+  logMode.value = 'simple'
+  await loadRuns()
+  selectedRun.value = await api.getRun(id)
+  if (socket) socket.close()
+  socket = connectRunLogs(id, async (message) => {
+    liveLog.value += message
+    if (message.includes('[run success]') || message.includes('[run failed]')) {
+      running.value = false
+      await loadRuns()
+      await selectRun(id)
+    }
+  })
+}
+
 async function startRun() {
   error.value = ''
   liveLog.value = ''
@@ -43,16 +68,7 @@ async function startRun() {
   logMode.value = 'simple'
   try {
     const run = await api.startRun()
-    if (socket) socket.close()
-    socket = connectRunLogs(run.id, async (message) => {
-      liveLog.value += message
-      if (message.includes('[run success]') || message.includes('[run failed]')) {
-        running.value = false
-        await loadRuns()
-        await selectRun(run.id)
-      }
-    })
-    await loadRuns()
+    await followRun(run.id)
   } catch (err) {
     running.value = false
     error.value = err.message
@@ -61,7 +77,15 @@ async function startRun() {
 
 onMounted(async () => {
   await loadRuns()
+  if (props.initialRunId) await followRun(props.initialRunId)
 })
+
+watch(
+  () => props.initialRunId,
+  async (runId) => {
+    if (runId) await followRun(runId)
+  }
+)
 </script>
 
 <template>

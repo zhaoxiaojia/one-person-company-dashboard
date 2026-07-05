@@ -134,7 +134,7 @@ class RunnerService:
         return int(match.group(2)), int(match.group(4))
 
     def _simplify_log(self, log_text: str) -> str:
-        lines: list[str] = []
+        lines: list[str] = ["正在启动生产线"]
         keywords = ("task", "agent", "success", "failed", "error", "output", "finished", "completed", "writing")
         for raw_line in mask_sensitive_text(log_text).splitlines():
             line = raw_line.strip()
@@ -143,17 +143,19 @@ class RunnerService:
             lower = line.lower()
             if not any(keyword in lower for keyword in keywords):
                 continue
+            task_match = re.search(r"(?i)\btask\s+([A-Za-z0-9_\-]+)", line)
+            agent_match = re.search(r"(?i)\bagent\s+([A-Za-z0-9_\-]+)", line)
+            output_match = re.search(r"([^\s]+?\.(?:md|txt|json))\b", line, re.IGNORECASE)
+            if task_match:
+                lines.append(f"正在执行任务：{task_match.group(1)}")
+            if agent_match:
+                lines.append(f"当前智能体：{agent_match.group(1)}")
+            if output_match:
+                lines.append(f"输出文件：{output_match.group(1)}")
             if "error" in lower or "failed" in lower or "exception" in lower:
-                prefix = "异常提醒"
+                lines.append(f"运行失败：{line}")
             elif "success" in lower or "finished" in lower or "completed" in lower:
-                prefix = "运行成功"
-            elif "output" in lower or "writing" in lower:
-                prefix = "输出产物"
-            elif "task" in lower or "agent" in lower:
-                prefix = "任务进度"
-            else:
-                prefix = "运行信息"
-            lines.append(f"{prefix}：{line}")
+                lines.append("运行成功")
         if not lines:
             return "暂无关键进度。需要排查时请切换到原始日志。"
         return "\n".join(lines[-80:])

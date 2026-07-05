@@ -57,23 +57,27 @@ export const api = {
 }
 
 export function simplifyLogText(logText) {
+  const summary = ['正在启动生产线']
   const keywords = ['task', 'agent', 'success', 'failed', 'error', 'output', 'finished', 'completed', 'writing']
-  const lines = String(logText || '')
+  String(logText || '')
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => {
       const lower = line.toLowerCase()
       return line && keywords.some((keyword) => lower.includes(keyword))
     })
-    .map((line) => {
+    .forEach((line) => {
       const lower = line.toLowerCase()
-      if (lower.includes('error') || lower.includes('failed') || lower.includes('exception')) return `异常提醒：${line}`
-      if (lower.includes('success') || lower.includes('finished') || lower.includes('completed')) return `运行成功：${line}`
-      if (lower.includes('output') || lower.includes('writing')) return `输出产物：${line}`
-      if (lower.includes('task') || lower.includes('agent')) return `任务进度：${line}`
-      return `运行信息：${line}`
+      const taskMatch = line.match(/\btask\s+([A-Za-z0-9_-]+)/i)
+      const agentMatch = line.match(/\bagent\s+([A-Za-z0-9_-]+)/i)
+      const outputMatch = line.match(/([^\s]+?\.(?:md|txt|json))\b/i)
+      if (taskMatch) summary.push(`正在执行任务：${taskMatch[1]}`)
+      if (agentMatch) summary.push(`当前智能体：${agentMatch[1]}`)
+      if (outputMatch) summary.push(`输出文件：${outputMatch[1]}`)
+      if (lower.includes('error') || lower.includes('failed') || lower.includes('exception')) summary.push(`运行失败：${line}`)
+      else if (lower.includes('success') || lower.includes('finished') || lower.includes('completed')) summary.push('运行成功')
     })
-  return lines.length ? lines.slice(-80).join('\n') : '暂无关键进度。需要排查时请切换到原始日志。'
+  return summary.length ? summary.slice(-80).join('\n') : '暂无关键进度。需要排查时请切换到原始日志。'
 }
 
 export function connectRunLogs(runId, onMessage) {

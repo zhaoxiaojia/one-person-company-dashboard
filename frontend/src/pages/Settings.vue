@@ -7,6 +7,7 @@ const health = ref(null)
 const pathInput = ref('')
 const error = ref('')
 const notice = ref('')
+const emit = defineEmits(['settings-saved'])
 
 async function load() {
   error.value = ''
@@ -23,6 +24,7 @@ async function save() {
     pathInput.value = settings.value.crew_project_path
     notice.value = '项目路径已保存，后端已切换到新路径。'
     await checkHealth()
+    emit('settings-saved')
   } catch (err) {
     error.value = err.message
   }

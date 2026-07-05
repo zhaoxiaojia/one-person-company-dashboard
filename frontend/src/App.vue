@@ -24,7 +24,19 @@ const pages = [
 ]
 
 const activePage = ref('dashboard')
+const pendingRunId = ref(null)
+const appRefreshKey = ref(0)
 const activeComponent = computed(() => pages.find((page) => page.id === activePage.value)?.component || Dashboard)
+
+function handleRunStarted(runId) {
+  pendingRunId.value = runId
+  activePage.value = 'runs'
+}
+
+function handleSettingsSaved() {
+  appRefreshKey.value += 1
+  pendingRunId.value = null
+}
 </script>
 
 <template>
@@ -49,7 +61,13 @@ const activeComponent = computed(() => pages.find((page) => page.id === activePa
       </nav>
     </aside>
     <main class="ml-64 px-8 py-6">
-      <component :is="activeComponent" />
+      <component
+        :is="activeComponent"
+        :key="`${activePage}-${appRefreshKey}`"
+        :initial-run-id="activePage === 'runs' ? pendingRunId : null"
+        @run-started="handleRunStarted"
+        @settings-saved="handleSettingsSaved"
+      />
     </main>
   </div>
 </template>
