@@ -97,6 +97,7 @@ class RunnerService:
         error_message = None if return_code == 0 else f"uv run crewai run exited with code {return_code}"
         input_tokens, output_tokens = self._parse_tokens(log_text)
         output_paths = self._scan_output_paths(started)
+        output_paths.extend(self._finalize_story_output(run_id, log_text, status))
         with connect(self.db_path) as connection:
             connection.execute(
                 """
@@ -169,10 +170,66 @@ class RunnerService:
                     outputs.append(str(path))
         return sorted(outputs)
 
+    def _finalize_story_output(self, run_id: int, log_text: str, status: str) -> list[str]:
+        outputs_dir = self.crew_project_path / "outputs"
+        run_outputs_dir = outputs_dir / "runs"
+        run_outputs_dir.mkdir(parents=True, exist_ok=True)
+        story = self._extract_story_markdown(log_text)
+        if story:
+            latest_path = outputs_dir / "latest_story.md"
+            run_path = run_outputs_dir / f"run_{run_id}_story.md"
+            latest_path.write_text(story, encoding="utf-8")
+            run_path.write_text(story, encoding="utf-8")
+            return [str(latest_path), str(run_path)]
+        raw_path = run_outputs_dir / f"run_{run_id}_raw.md"
+        raw_path.write_text(mask_sensitive_text(log_text), encoding="utf-8")
+        return [str(raw_path)]
+
+    def _extract_story_markdown(self, log_text: str) -> str:
+        for name in ("short_anime_script.md", "code_fate_improved.md", "anime_episode_outline.md"):
+            path = self.crew_project_path / name
+            if path.exists() and path.stat().st_size > 20:
+                return path.read_text(encoding="utf-8").strip()
+        markdown_blocks = [block.strip() for block in mask_sensitive_text(log_text).split("\n\n") if len(block.strip()) > 500]
+        if markdown_blocks:
+            return markdown_blocks[-1]
+        return ""
+
+    def _build_story_fields(self, data: dict[str, Any]) -> dict[str, str]:
+        output_paths = data.get("output_paths") or []
+        story_path = ""
+        for raw_path in reversed(output_paths):
+            path = Path(raw_path)
+            if not path.is_absolute():
+                path = self.crew_project_path / path
+            if path.name.endswith("_story.md") and path.exists():
+                story_path = str(path)
+                break
+        if not story_path:
+            for raw_path in reversed(output_paths):
+                path = Path(raw_path)
+                if not path.is_absolute():
+                    path = self.crew_project_path / path
+                if path.name.endswith("_raw.md") and path.exists():
+                    relative = str(path.relative_to(self.crew_project_path))
+                    return {
+                        "story_output_path": relative,
+                        "story_markdown": "",
+                        "story_message": "未提取到最终故事，请查看原始日志。",
+                    }
+            return {"story_output_path": "", "story_markdown": "", "story_message": "暂无最终故事。"}
+        path = Path(story_path)
+        return {
+            "story_output_path": str(path.relative_to(self.crew_project_path)),
+            "story_markdown": path.read_text(encoding="utf-8"),
+            "story_message": "已提取最终故事。",
+        }
+
     def _row_to_dict(self, row: sqlite3.Row, include_log: bool) -> dict[str, Any]:
         data = dict(row)
         data["output_paths"] = json.loads(data.pop("output_paths_json") or "[]")
         data["simple_log_text"] = self._simplify_log(data.get("log_text") or "")
+        data.update(self._build_story_fields(data))
         if not include_log:
             data.pop("log_text", None)
         return data

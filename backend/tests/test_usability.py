@@ -111,3 +111,53 @@ def test_simplifies_english_log_into_chinese_summary(tmp_path: Path):
     assert "运行成功" in simple
     assert "运行失败：Error: sample failure" in simple
     assert "sk-secret-value" not in simple
+
+
+def test_finalizes_story_outputs_from_modified_story_file(tmp_path: Path, valid_crew_project: Path):
+    db_path = tmp_path / "runs.sqlite"
+    runner = RunnerService(valid_crew_project, db_path)
+    story_file = valid_crew_project / "short_anime_script.md"
+    story_file.write_text("# 最终故事\n\n这是最终剧本内容。", encoding="utf-8")
+
+    paths = runner._finalize_story_output(1, "# log", "success")
+    run = runner._build_story_fields({"output_paths": paths, "log_text": "# log"})
+
+    latest = valid_crew_project / "outputs" / "latest_story.md"
+    archived = valid_crew_project / "outputs" / "runs" / "run_1_story.md"
+    assert latest.read_text(encoding="utf-8") == "# 最终故事\n\n这是最终剧本内容。"
+    assert archived.read_text(encoding="utf-8") == "# 最终故事\n\n这是最终剧本内容。"
+    assert str(latest) in paths
+    assert str(archived) in paths
+    assert run["story_output_path"] == "outputs/runs/run_1_story.md"
+    assert run["story_markdown"].startswith("# 最终故事")
+    assert run["story_message"] == "已提取最终故事。"
+
+
+def test_finalizes_raw_log_when_story_cannot_be_extracted(tmp_path: Path, valid_crew_project: Path):
+    runner = RunnerService(valid_crew_project, tmp_path / "runs.sqlite")
+    raw_log = "OPENAI_API_KEY=sk-secret-value\nshort log"
+
+    paths = runner._finalize_story_output(2, raw_log, "success")
+    run = runner._build_story_fields({"output_paths": paths, "log_text": raw_log})
+
+    raw_path = valid_crew_project / "outputs" / "runs" / "run_2_raw.md"
+    assert raw_path.exists()
+    assert "sk-secret-value" not in raw_path.read_text(encoding="utf-8")
+    assert str(raw_path) in paths
+    assert run["story_output_path"] == "outputs/runs/run_2_raw.md"
+    assert run["story_markdown"] == ""
+    assert run["story_message"] == "未提取到最终故事，请查看原始日志。"
+
+
+def test_lists_nested_output_files(valid_crew_project: Path):
+    outputs_dir = valid_crew_project / "outputs" / "runs"
+    outputs_dir.mkdir(parents=True)
+    (valid_crew_project / "outputs" / "latest_story.md").write_text("# latest", encoding="utf-8")
+    (outputs_dir / "run_1_story.md").write_text("# story", encoding="utf-8")
+
+    from services.crew_config_service import CrewConfigService
+
+    outputs = CrewConfigService(valid_crew_project).list_outputs()
+
+    assert "outputs/latest_story.md" in [item["path"] for item in outputs]
+    assert "outputs/runs/run_1_story.md" in [item["path"] for item in outputs]

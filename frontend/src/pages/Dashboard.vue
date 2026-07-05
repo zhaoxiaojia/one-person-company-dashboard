@@ -6,6 +6,8 @@ import StatusPill from '../components/StatusPill.vue'
 
 const summary = ref(null)
 const health = ref(null)
+const crewConfig = ref(null)
+const storyIdea = ref('')
 const error = ref('')
 const running = ref(false)
 const emit = defineEmits(['run-started'])
@@ -21,9 +23,11 @@ function formatDuration(ms) {
 async function load() {
   error.value = ''
   try {
-    const [summaryPayload, healthPayload] = await Promise.all([api.getSummary(), api.getHealth()])
+    const [summaryPayload, healthPayload, configPayload] = await Promise.all([api.getSummary(), api.getHealth(), api.getCrewConfig()])
     summary.value = summaryPayload
     health.value = healthPayload
+    crewConfig.value = configPayload
+    storyIdea.value = configPayload.inputs?.story_idea || ''
     running.value = latestRun.value?.status === 'running'
   } catch (err) {
     error.value = err.message
@@ -34,6 +38,8 @@ async function startProductionLine() {
   error.value = ''
   running.value = true
   try {
+    const inputs = { ...(crewConfig.value?.inputs || {}), story_idea: storyIdea.value }
+    crewConfig.value = await api.updateInputs(inputs)
     const run = await api.startRun()
     emit('run-started', run.id)
   } catch (err) {
@@ -77,6 +83,13 @@ onMounted(load)
       <div v-if="health?.ok === false" class="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
         运行环境异常：{{ health.message }}
       </div>
+      <label class="mt-4 block text-sm font-medium" for="dashboardStoryIdea">故事创意 story_idea</label>
+      <textarea
+        id="dashboardStoryIdea"
+        v-model="storyIdea"
+        class="mt-2 min-h-28 w-full rounded-md border border-line bg-[#fffefa] p-3 text-sm outline-none focus:border-accent"
+        placeholder="输入这次要生产的故事创意"
+      />
     </div>
 
     <div v-if="summary" class="grid grid-cols-5 gap-4">

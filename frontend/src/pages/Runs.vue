@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { marked } from 'marked'
 import { api, connectRunLogs, simplifyLogText } from '../api/client'
 import StatusPill from '../components/StatusPill.vue'
 
@@ -23,6 +24,10 @@ const displayLog = computed(() => {
   }
   if (!selectedRun.value) return '暂无日志'
   return logMode.value === 'simple' ? selectedRun.value.simple_log_text : selectedRun.value.log_text
+})
+const renderedStory = computed(() => {
+  if (!selectedRun.value?.story_markdown) return ''
+  return marked.parse(selectedRun.value.story_markdown)
 })
 
 function formatDate(value) {
@@ -106,7 +111,7 @@ watch(
       </button>
     </div>
     <div v-if="error" class="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{{ error }}</div>
-    <div class="grid grid-cols-[420px_1fr] gap-4">
+    <div class="grid grid-cols-[360px_1fr_1fr] gap-4">
       <div class="rounded-md border border-line bg-white">
         <div class="border-b border-line p-3 text-sm font-semibold">历史记录</div>
         <button
@@ -135,6 +140,13 @@ watch(
           </div>
         </div>
         <pre class="max-h-[68vh] min-h-[420px] overflow-auto whitespace-pre-wrap bg-[#1f2328] p-4 text-xs leading-5 text-[#f0f3f6]">{{ displayLog }}</pre>
+      </div>
+      <div class="rounded-md border border-line bg-white">
+        <div class="border-b border-line p-3 text-sm font-semibold">最终结果</div>
+        <div v-if="selectedRun?.story_markdown" class="prose-preview max-h-[68vh] min-h-[420px] overflow-auto p-4 text-sm" v-html="renderedStory" />
+        <div v-else class="p-4 text-sm text-neutral-600">
+          {{ selectedRun?.story_message || '暂无最终故事。运行完成后会在这里展示 Markdown 结果。' }}
+        </div>
       </div>
     </div>
   </section>

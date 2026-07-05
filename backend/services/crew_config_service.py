@@ -151,14 +151,26 @@ class CrewConfigService:
 
     def list_outputs(self) -> list[dict[str, Any]]:
         output_files: list[dict[str, Any]] = []
-        roots = [self.crew_project_path]
         outputs_dir = self.crew_project_path / "outputs"
-        if outputs_dir.exists():
-            roots.append(outputs_dir)
         seen: set[Path] = set()
-        for root in roots:
+        for suffix in ("*.md", "*.txt", "*.json"):
+            for path in self.crew_project_path.glob(suffix):
+                if path.name.endswith(".bak") or path in seen:
+                    continue
+                seen.add(path)
+                stat = path.stat()
+                output_files.append(
+                    {
+                        "name": path.name,
+                        "path": str(path.relative_to(self.crew_project_path)),
+                        "size": stat.st_size,
+                        "modified_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+                        "kind": self._output_kind(path),
+                    }
+                )
+        if outputs_dir.exists():
             for suffix in ("*.md", "*.txt", "*.json"):
-                for path in root.glob(suffix):
+                for path in outputs_dir.rglob(suffix):
                     if path.name.endswith(".bak") or path in seen:
                         continue
                     seen.add(path)
